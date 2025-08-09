@@ -1,6 +1,6 @@
 {
-	"name": "EnaltCast",
+	"name": "enaltcast",
 	"tree": {
-		"$path": "src"
+		"$path": "lib"
 	}
 }

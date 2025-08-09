@@ -1,4 +1,4 @@
-local FastSignal = require(script.Parent.FastSignal)
+local FastSignal = require(script.Parent.Parent.fastsignal)
 
 export type CastConfig = {
     Speed: number,

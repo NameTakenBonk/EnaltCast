@@ -3,10 +3,10 @@ name = "nametakenbonk/enaltcast"
 description = "A fast and easy to use caster"
 lisence = "MIT"
 authors = ["Alternative", "EnumEnv"]
-version = "0.0.1"
+version = "0.0.6"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
-include = ["src", "default.project.json", "LICENSE"]
+exclude = ["**.lock", "Packages", "**.json"]
 
 [dependencies]
 fastsignal = "lucasmzreal/fastsignal@10.4.0"

@@ -11,7 +11,7 @@ local Types = require(script.Types)
 local Visualiser = require(script.Visualiser)
 local Settings = require(script.Settings)
 local MathUtils = require(script.Math)
-local FastSignal = require(script.Parent.Packages.fastsignal)
+local FastSignal = require(script.Parent.fastsignal)
 
 -- Class --
 local Caster = {}
