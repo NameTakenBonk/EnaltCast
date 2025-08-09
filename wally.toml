@@ -6,7 +6,7 @@ authors = ["Alternative", "EnumEnv"]
 version = "0.0.1"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
-exclude = ["aftman.toml"]
+include = ["src", "default.project.json", "LICENSE"]
 
 [dependencies]
 fastsignal = "lucasmzreal/fastsignal@10.4.0"
