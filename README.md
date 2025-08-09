@@ -3,6 +3,7 @@
 Super fast and easy to use casting system. Made for projectile physics that's super optimized and light weight.
 
 # Credits
+
 Authors: Alternative, EnumEnv
 Visualiser: FastCast
 Penetration/Ricochet: SecureCast
@@ -42,6 +43,7 @@ end)
 ```
 
 `Client`
+
 ```lua
 local UserInputService = game:GetService("UserInputService")
 local RpelicatedStorage = game:GetService("ReplicatedStorage")
@@ -66,5 +68,31 @@ Player.CharacterAdded:Connect(function(character)
 end)
 ```
 
-# Class
-**TO DO**
+# Docs
+
+## Types
+
+#### CastConfig
+
+`Speed: number`: How fast the projectile would move \
+`ExtraForce: Vector3`: An extra force you can use for things like gravity \
+`RayParams: RaycastParams`: The raycast params you want to use \
+`Lifetime: number?`: How long should the projectile should exist before getting deleted 
+
+`RicochetAngle: number?`: The angle at which the projectile can ricochet \
+`RicochetHardness: number?`: How hard the surface should be to ricochet 
+
+`OnImpact: FastSignal.ScriptSignal<RaycastResult, ProjectileData>`: This signal gets fired when the projectile hits something
+
+## Class
+### Functions
+
+#### `.new(): class`
+Creates a new caster class \
+**return:** `class` 
+#### `:Cast(config: CastConfig, origin: Vector3, direction: Vector3, bullet: BasePart?)` 
+Starts a new projectile cast \
+**config**: `CastConfig` The configuration of this projectile \
+**origin**: `Vector3` Where the projectile starts \
+**direction**: `Vector3` The direction where the projectile should go \
+**bullet**: `BasePart?` The visual part of the projectile
