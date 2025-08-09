@@ -2,6 +2,11 @@
 
 Super fast and easy to use casting system. Made for projectile physics that's super optimized and light weight.
 
+# Credits
+Authors: Alternative, EnumEnv
+Visualiser: FastCast
+Penetration/Ricochet: SecureCast
+
 # Example
 
 `Server`
