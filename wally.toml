@@ -1,5 +1,5 @@
 [package]
-name = "coded/enaltcast"
+name = "nametakenbonk/enaltcast"
 description = "A fast and easy to use caster"
 lisence = "MIT"
 authors = ["Alternative", "EnumEnv"]
