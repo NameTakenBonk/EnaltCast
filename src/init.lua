@@ -1,6 +1,5 @@
 --!strict
 --!optimize 2
---- @diagnostic disable: undefined-doc-name
 -- Original Author: AlternativeFent
 -- Editor and Optimiser: EnumEnv
 -- Services --
@@ -12,7 +11,7 @@ local Types = require(script.Types)
 local Visualiser = require(script.Visualiser)
 local Settings = require(script.Settings)
 local MathUtils = require(script.Math)
-local FastSignal = require(script.FastSignal)
+local FastSignal = require(script.Parent.Packages.fastsignal)
 
 -- Class --
 local Caster = {}

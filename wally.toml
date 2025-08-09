@@ -1,0 +1,12 @@
+[package]
+name = "coded/enaltcast"
+description = "A fast and easy to use caster"
+lisence = "MIT"
+authors = ["Alternative", "EnumEnv"]
+version = "0.0.1"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+exclude = ["aftman.toml"]
+
+[dependencies]
+fastsignal = "lucasmzreal/fastsignal@10.4.0"
