@@ -1,4 +1,5 @@
 local FastSignal = require(script.Parent.Parent.fastsignal)
+local Pooler = require(script.Parent.Pooler)
 
 export type CastConfig = {
     Speed: number,
@@ -6,11 +7,14 @@ export type CastConfig = {
     RayParams: RaycastParams,
     Lifetime: number?,
 	
-	RichochetAngle: number?, --> UNUSED TEMPORARILY
-    RichochetHardness: number?, --> UNUSED TEMPORARILY
-	PenetrationPower: number?, --> UNUSED TEMPORARILY
+	RichochetAngle: number?,
+    RichochetHardness: number?, 
+	PenetrationPower: number?,
+    Loss: number?,
 	
     OnImpact: FastSignal.ScriptSignal<RaycastResult, ProjectileData>,
+    OnPenetration: FastSignal.ScriptSignal<RaycastResult, ProjectileData>,
+    OnRichochet: FastSignal.ScriptSignal<RaycastResult, ProjectileData>,
 }
 
 export type ProjectileData = {
@@ -21,7 +25,9 @@ export type ProjectileData = {
     CurrentDirection: Vector3,
     Velocity: Vector3,
     Time: number,
+    IgnoreList: {Instance},
     Bullet: BasePart?,
+    Pooler: Pooler.Pooler?,
 }
 
 local Types = {}

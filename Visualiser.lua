@@ -1,3 +1,4 @@
+-- TAKEN FROM FAST CAST
 local Visualiser = { }
 
 function Visualiser.VisualiseSegment(startCFrame: CFrame, lenght: number): ConeHandleAdornment

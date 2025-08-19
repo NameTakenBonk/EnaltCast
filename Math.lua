@@ -20,21 +20,4 @@ function Math.GetPositionAtTime(projectileData: ProjectileData): Vector3
 	)
 end
 
---- Quadtratic formula shit
---- @param projectileData ProjectileData
---- @return any
-function Math.GetTimeAtPosition(projectileData: ProjectileData): number
-	local a = (projectileData.Velocity - 0.5 * projectileData.Config.ExtraForce)
-	local b = (projectileData.Velocity + 0.5 * projectileData.Config.ExtraForce)
-	local c = (2 * projectileData.Config.ExtraForce * (projectileData.Origin - projectileData.CurrentPosition))
-
-	local t1 = ((a - Math.VectorSquareRoot(b * b - c) / projectileData.Config.ExtraForce)).Y
-	local t2 = ((a + Math.VectorSquareRoot(b * b - c) / projectileData.Config.ExtraForce)).Y
-
-	local d1 = math.abs(projectileData.Time - t1)
-	local d2 = math.abs(projectileData.Time - t2)
-
-	return (d1 < d2) and t1 or t2
-end
-
 return Math

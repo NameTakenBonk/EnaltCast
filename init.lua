@@ -1,17 +1,18 @@
+---@diagnostic disable: undefined-doc-name
 --!strict
 --!optimize 2
+
 -- Original Author: AlternativeFent
 -- Editor and Optimiser: EnumEnv
 -- Services --
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 -- Imports --
 local Types = require(script.Types)
 local Visualiser = require(script.Visualiser)
 local Settings = require(script.Settings)
 local MathUtils = require(script.Math)
 local FastSignal = require(script.Parent.fastsignal)
+local Pooler = require(script.Pooler)
 
 -- Class --
 local Caster = {}
@@ -55,6 +56,7 @@ end
 -- Types --
 type CastConfig = Types.CastConfig
 type ProjectileData = Types.ProjectileData
+type Pooler = Pooler.Pooler
 export type Caster = typeof(Caster) & {
 	_connections: { RBXScriptConnection },
 	_activeBullets: { ProjectileData },
@@ -221,11 +223,17 @@ end
 --- @param config CastConfig the configuration for the cast
 --- @param origin Vector3 the origin of the cast
 --- @param direction Vector3 the direction of the cast
---- @param bullet BasePart? the new bullet part to be casted
-function Caster.Cast(self: Caster, config: CastConfig, origin: Vector3, direction: Vector3, bullet: BasePart?)
+--- @param bullet BasePart? | Pooler | nil the new bullet part to be casted
+function Caster.Cast(self: Caster, config: CastConfig, origin: Vector3, direction: Vector3, bullet: BasePart | Pooler | nil)
 	if RunService:IsServer() and bullet and Settings.SafeMode then
 		warn("It's recommended to replicate bullets on the client!")
 		return
+	end
+
+	local pooler
+	if bullet and typeof(bullet) ~= "Instance" then
+		pooler = bullet
+		bullet = bullet:Pull()
 	end
 
 	if bullet then
@@ -253,7 +261,9 @@ function Caster.Cast(self: Caster, config: CastConfig, origin: Vector3, directio
 		CurrentDirection = Vector3.zero,
 		Velocity = direction * config.Speed,
 		Bullet = bullet,
+		IgnoreList = config.RayParams.FilterDescendantsInstances or {}
 	}
+	if pooler then projectileData.Pooler = pooler end
 
 	if self._useParallel then
 		self._bulletIdCounter += 1
@@ -282,7 +292,6 @@ function Caster.Cast(self: Caster, config: CastConfig, origin: Vector3, directio
 
 		BulletActors[actorIndex]:SendMessage("CastBullet", actorData)
 	else
-		print("added")
 		table.insert(self._activeBullets, projectileData)
 	end
 end
@@ -297,6 +306,11 @@ end
 --- @return FastSignal.ScriptSignal<T1, T2, T3?>
 function Caster.NewSignal<T1, T2, T3>(self: Caster): FastSignal.ScriptSignal<T1, T2, T3?>
 	return FastSignal.new()
+end
+
+--- Utility function to create a new Pooler class
+function Caster.NewPooler(self: Caster, ...)
+	return Pooler.new(...)
 end
 
 --- Gets current workload distribution across actors
@@ -393,8 +407,10 @@ function Caster._heartbeat(self: Caster, deltaTime: number)
 			local hit, raycastResult = self:_updateProjectile(data)
 
 			if hit then
-				if data.Bullet then
+				if data.Bullet and not data.Pooler then
 					data.Bullet:Destroy() 
+				elseif data.Pooler then
+					data.Pooler:Return(data.Bullet)
 				end
 
 				table.remove(self._activeBullets, index)
@@ -427,15 +443,13 @@ function Caster._updateProjectile(self: Caster, projectileData: ProjectileData):
 	local velocity = projectileData.Velocity + projectileData.Config.ExtraForce * projectileData.Time
 	local lookVector = velocity.Magnitude > 0 and velocity.Unit or Vector3.new(0, 0, -1)
 
+	local newParams = projectileData.Config.RayParams
+	newParams.FilterDescendantsInstances = projectileData.IgnoreList
 	local rayResult = workspace:Raycast(
 		projectileData.CurrentPosition,
 		projectilePosition - projectileData.CurrentPosition,
-		projectileData.Config.RayParams
+		newParams
 	)
-
-	if projectileData.Bullet then
-		projectileData.Bullet.CFrame = CFrame.new(projectilePosition, projectilePosition + lookVector)
-	end
 
 	local destroy = false
 	if rayResult then
@@ -450,7 +464,11 @@ function Caster._updateProjectile(self: Caster, projectileData: ProjectileData):
 	projectileData.CurrentDirection = projectileData.CurrentPosition - projectilePosition
 	projectileData.CurrentPosition = projectilePosition
 
-	if Settings.Visualise then
+	if projectileData.Bullet then
+		projectileData.Bullet.CFrame = CFrame.new(projectilePosition, projectilePosition + lookVector)
+	end
+
+	if Settings.Visualise and RunService:IsClient() then
 		Visualiser.VisualiseSegment(CFrame.new(projectilePosition, projectilePosition + lookVector), displacement.Magnitude)
 	end
 
@@ -462,25 +480,31 @@ end
 --- @param rayResult RaycastResult
 --- @return boolean (if should destroy)
 function Caster._hit(self: Caster, projectileData: ProjectileData, rayResult: RaycastResult): boolean
-	if Settings.Visualise then
+	if Settings.Visualise and RunService:IsClient() then
 		Visualiser.VisualiseHit(CFrame.new(rayResult.Position))
 	end
 
-	local normal = rayResult.Normal
-	local unitDirection = projectileData.CurrentDirection.Unit
-	local surfaceAngle = math.acos(unitDirection:Dot(normal.Unit))
-	local hardness = Settings.SurfaceHardness[rayResult.Material] or Settings.SurfaceHardness.Default
+    local direction = projectileData.CurrentDirection
+    local normal = rayResult.Normal
+    local unitDirection = direction.Unit
+    local surfaceAngle = math.acos(unitDirection:Dot(normal.Unit))
+    local hardness = Settings.SurfaceHardness[rayResult.Material] or Settings.SurfaceHardness.Default
 
+	print(math.deg(surfaceAngle))
 	-- // Ricochet
 	if projectileData.Config.RichochetAngle and surfaceAngle <= math.rad(projectileData.Config.RichochetAngle) and hardness >= projectileData.Config.RichochetHardness then
 		projectileData.Time = 0
 		projectileData.CurrentPosition = rayResult.Position
 		projectileData.Origin = rayResult.Position
 		projectileData.Velocity = -(unitDirection - (2 * unitDirection:Dot(normal) * normal)).Unit * projectileData.Config.Speed 
+
+		if projectileData.Config.OnRichochet then
+			projectileData.Config.OnRichochet:Fire(rayResult, projectileData)
+		end
+
 		return false
 		-- // Penetration
-	--[[
-		elseif rayResult ~= workspace.Terrain then
+	elseif rayResult ~= workspace.Terrain then
 		local reverseDirection = -unitDirection * rayResult.Instance.Size.Magnitude
 		local reverseOrigin = rayResult.Position - reverseDirection
 		local reverseResult = workspace:Raycast(reverseOrigin, reverseDirection, RaycastParams.new()) :: RaycastResult?
@@ -490,20 +514,18 @@ function Caster._hit(self: Caster, projectileData: ProjectileData, rayResult: Ra
 		local strenght = (depth * hardness)
 
 		if projectileData.Config.PenetrationPower >= strenght then
-			local tempTime = projectileData.Time
 			projectileData.Config.PenetrationPower -= strenght
-			local reverseData = table.clone(projectileData)
-			reverseData.CurrentPosition = reversePosition
-			projectileData.Time = MathUtils.GetTimeAtPosition(reverseData)
-			projectileData.CurrentPosition = MathUtils.GetPositionAtTime(projectileData)
+			table.insert(projectileData.IgnoreList, rayResult.Instance)
 
-			local difference = (projectileData.Time - tempTime)
-			projectileData.Time = math.min(projectileData.Time + difference, projectileData.Config.Lifetime or 5)
+			if projectileData.Config.OnPenetration then
+				projectileData.Config.OnPenetration:Fire(rayResult, projectileData)
+			end
+
+			return false
 		else
 			return true
 		end
-	]]
-	end
+    end
 
 	projectileData.Config.OnImpact:Fire(rayResult, projectileData)
 
