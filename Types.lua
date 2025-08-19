@@ -6,6 +6,8 @@ export type CastConfig = {
     ExtraForce: Vector3,
     RayParams: RaycastParams,
     Lifetime: number?,
+
+    Attributes: { any },
 	
 	RichochetAngle: number?,
     RichochetHardness: number?, 
