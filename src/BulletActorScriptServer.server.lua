@@ -24,7 +24,7 @@ local function getPositionAtTime(data: any): Vector3
 	return initialVelocity * t + 0.5 * gravity * t * t
 end
 
-actor:BindToMessage("CastBullet", function(data)
+actor:BindToMessageParallel("CastBullet", function(data)
 	activeBullets[data.bulletId] = {
 		bulletId = data.bulletId,
 		origin = data.origin,
@@ -39,7 +39,7 @@ actor:BindToMessage("CastBullet", function(data)
 	}
 end)
 
-actor:BindToMessage("Heartbeat", function(data)
+actor:BindToMessageParallel("Heartbeat", function(data)
 	local currentTime = os.clock()
 	local timeSinceUpdate = currentTime - lastHeartbeat
 
@@ -94,6 +94,6 @@ actor:BindToMessage("Heartbeat", function(data)
 	lastHeartbeat = currentTime
 end)
 
-actor:BindToMessage("Cleanup", function()
+actor:BindToMessageParallel("Cleanup", function()
 	activeBullets = {}
 end)

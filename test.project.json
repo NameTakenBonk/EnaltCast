@@ -1,0 +1,15 @@
+{
+    "name": "EnaltCast",
+    "emitLegacyScripts": false,
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "Shared": {
+                "$className": "Folder",
+                "EnaltCast": {
+                    "$path": "default.project.json"
+                }
+            }
+        }
+    }
+}

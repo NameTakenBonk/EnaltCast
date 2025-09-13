@@ -11,7 +11,7 @@ local Types = require(script.Types)
 local Visualiser = require(script.Visualiser)
 local Settings = require(script.Settings)
 local MathUtils = require(script.Math)
-local FastSignal = require(script.Parent.fastsignal)
+local FastSignal = require(script.Packages.fastsignal)
 local Pooler = require(script.Pooler)
 
 -- Class --
@@ -27,12 +27,12 @@ local BulletFolder = workspace:FindFirstChild("BulletsFolder") or Instance.new("
 BulletFolder.Name = "BulletsFolder"
 BulletFolder.Parent = workspace
 
-if not ActorsCreated and not CreatingActors then
+if not ActorsCreated and not CreatingActors and Settings.ParallelProcessing then
 	CreatingActors = true
-	
+
 	for i = 1, Settings.ActorAmount do
 		local BulletActor = Instance.new("Actor")
-		BulletActor.Name = "BulletActor"..i
+		BulletActor.Name = "BulletActor" .. i
 		BulletActor.Parent = script
 
 		BulletActors[i] = BulletActor
@@ -49,7 +49,7 @@ if not ActorsCreated and not CreatingActors then
 			end
 		end
 	end
-	
+
 	ActorsCreated = true
 end
 
@@ -96,13 +96,19 @@ function Caster.new(): Caster
 	end
 
 	if RunService:IsClient() then
-		table.insert(self._connections, RunService.RenderStepped:Connect(function(deltaTime: number) 
-			self:_heartbeat(deltaTime) 
-		end))
+		table.insert(
+			self._connections,
+			RunService.RenderStepped:Connect(function(deltaTime: number)
+				self:_heartbeat(deltaTime)
+			end)
+		)
 	else
-		table.insert(self._connections, RunService.Heartbeat:Connect(function(deltaTime: number) 
-			self:_heartbeat(deltaTime) 
-		end))
+		table.insert(
+			self._connections,
+			RunService.Heartbeat:Connect(function(deltaTime: number)
+				self:_heartbeat(deltaTime)
+			end)
+		)
 	end
 
 	return self :: any
@@ -119,16 +125,22 @@ function Caster._setupActorCommunication(self: Caster)
 	bulletUpdateEvent.Parent = communicationFolder
 
 	local bulletHitEvent = communicationFolder:FindFirstChild("BulletHit") or Instance.new("BindableEvent")
-	bulletHitEvent.Name = "BulletHit" 
+	bulletHitEvent.Name = "BulletHit"
 	bulletHitEvent.Parent = communicationFolder
 
-	table.insert(self._connections, bulletUpdateEvent.Event:Connect(function(data)
-		self:_handleActorUpdate(data)
-	end))
+	table.insert(
+		self._connections,
+		bulletUpdateEvent.Event:Connect(function(data)
+			self:_handleActorUpdate(data)
+		end)
+	)
 
-	table.insert(self._connections, bulletHitEvent.Event:Connect(function(data)
-		self:_handleActorHit(data)
-	end))
+	table.insert(
+		self._connections,
+		bulletHitEvent.Event:Connect(function(data)
+			self:_handleActorHit(data)
+		end)
+	)
 end
 
 --- Gets the actor with the least workload for load balancing
@@ -160,7 +172,9 @@ function Caster._handleActorUpdate(self: Caster, data: any)
 	local bulletId = data.bulletId
 	local projectileData = self._actorBullets[bulletId]
 
-	if not projectileData then return end
+	if not projectileData then
+		return
+	end
 
 	projectileData.CurrentPosition = data.position
 	projectileData.Time = data.time
@@ -189,7 +203,9 @@ function Caster._handleActorHit(self: Caster, data: any)
 	local bulletId = data.bulletId
 	local projectileData = self._actorBullets[bulletId]
 
-	if not projectileData then return end
+	if not projectileData then
+		return
+	end
 
 	projectileData.Config.OnImpact:Fire(data.rayResult, projectileData)
 
@@ -224,7 +240,13 @@ end
 --- @param origin Vector3 the origin of the cast
 --- @param direction Vector3 the direction of the cast
 --- @param bullet BasePart? | Pooler | nil the new bullet part to be casted
-function Caster.Cast(self: Caster, config: CastConfig, origin: Vector3, direction: Vector3, bullet: BasePart | Pooler | nil)
+function Caster.Cast(
+	self: Caster,
+	config: CastConfig,
+	origin: Vector3,
+	direction: Vector3,
+	bullet: BasePart | Pooler | nil
+)
 	if RunService:IsServer() and bullet and Settings.SafeMode then
 		warn("It's recommended to replicate bullets on the client!")
 		return
@@ -261,9 +283,11 @@ function Caster.Cast(self: Caster, config: CastConfig, origin: Vector3, directio
 		CurrentDirection = Vector3.zero,
 		Velocity = direction * config.Speed,
 		Bullet = bullet,
-		IgnoreList = config.RayParams.FilterDescendantsInstances or {}
+		IgnoreList = config.RayParams.FilterDescendantsInstances or {},
 	}
-	if pooler then projectileData.Pooler = pooler end
+	if pooler then
+		projectileData.Pooler = pooler
+	end
 
 	if self._useParallel then
 		self._bulletIdCounter += 1
@@ -336,7 +360,9 @@ end
 --- Toggles between parallel and single-threaded processing
 --- @param useParallel boolean
 function Caster.SetParallelProcessing(self: Caster, useParallel: boolean)
-	if self._useParallel == useParallel then return end
+	if self._useParallel == useParallel then
+		return
+	end
 
 	if useParallel then
 		for i = #self._activeBullets, 1, -1 do
@@ -408,7 +434,7 @@ function Caster._heartbeat(self: Caster, deltaTime: number)
 
 			if hit then
 				if data.Bullet and not data.Pooler then
-					data.Bullet:Destroy() 
+					data.Bullet:Destroy()
 				elseif data.Pooler then
 					data.Pooler:Return(data.Bullet)
 				end
@@ -422,7 +448,7 @@ function Caster._heartbeat(self: Caster, deltaTime: number)
 		local heartbeatData = {
 			deltaTime = deltaTime,
 			updateInterval = updateInterval,
-			visualise = Settings.Visualise
+			visualise = Settings.Visualise,
 		}
 
 		for i = 1, Settings.ActorAmount do
@@ -469,14 +495,17 @@ function Caster._updateProjectile(self: Caster, projectileData: ProjectileData):
 	end
 
 	if Settings.Visualise and RunService:IsClient() then
-		Visualiser.VisualiseSegment(CFrame.new(projectilePosition, projectilePosition + lookVector), displacement.Magnitude)
+		Visualiser.VisualiseSegment(
+			CFrame.new(projectilePosition, projectilePosition + lookVector),
+			displacement.Magnitude
+		)
 	end
 
 	return false
 end
 
 --- Handles the impact of the bullet (single-threaded fallback)
---- @param projectileData ProjectileData 
+--- @param projectileData ProjectileData
 --- @param rayResult RaycastResult
 --- @return boolean (if should destroy)
 function Caster._hit(self: Caster, projectileData: ProjectileData, rayResult: RaycastResult): boolean
@@ -484,19 +513,24 @@ function Caster._hit(self: Caster, projectileData: ProjectileData, rayResult: Ra
 		Visualiser.VisualiseHit(CFrame.new(rayResult.Position))
 	end
 
-    local direction = projectileData.CurrentDirection
-    local normal = rayResult.Normal
-    local unitDirection = direction.Unit
-    local surfaceAngle = math.acos(unitDirection:Dot(normal.Unit))
-    local hardness = Settings.SurfaceHardness[rayResult.Material] or Settings.SurfaceHardness.Default
+	local direction = projectileData.CurrentDirection
+	local normal = rayResult.Normal
+	local unitDirection = direction.Unit
+	local surfaceAngle = math.acos(unitDirection:Dot(normal.Unit))
+	local hardness = Settings.SurfaceHardness[rayResult.Material] or Settings.SurfaceHardness.Default
 
 	print(math.deg(surfaceAngle))
 	-- // Ricochet
-	if projectileData.Config.RichochetAngle and surfaceAngle <= math.rad(projectileData.Config.RichochetAngle) and hardness >= projectileData.Config.RichochetHardness then
+	if
+		projectileData.Config.RichochetAngle
+		and surfaceAngle <= math.rad(projectileData.Config.RichochetAngle)
+		and hardness >= projectileData.Config.RichochetHardness
+	then
 		projectileData.Time = 0
 		projectileData.CurrentPosition = rayResult.Position
 		projectileData.Origin = rayResult.Position
-		projectileData.Velocity = -(unitDirection - (2 * unitDirection:Dot(normal) * normal)).Unit * projectileData.Config.Speed 
+		projectileData.Velocity = -(unitDirection - (2 * unitDirection:Dot(normal) * normal)).Unit
+			* projectileData.Config.Speed
 
 		if projectileData.Config.OnRichochet then
 			projectileData.Config.OnRichochet:Fire(rayResult, projectileData)
@@ -525,7 +559,7 @@ function Caster._hit(self: Caster, projectileData: ProjectileData, rayResult: Ra
 		else
 			return true
 		end
-    end
+	end
 
 	projectileData.Config.OnImpact:Fire(rayResult, projectileData)
 
